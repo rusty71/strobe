@@ -40,7 +40,7 @@ class filter
 //volatile for ISR communication
 volatile int8_t cross = false;
 volatile long count_last = 0, count = 0;
-#define THRESHOLD  (4)	//TODO: make dynamic
+#define THRESHOLD  (8)	//TODO: make dynamic
 /*
  * The ISR is called every ~100us (9600Hz) and read a sample from the QRD1114
  * sensor. The data is filtered by a bandpass filter.
@@ -70,6 +70,7 @@ static short step, phase = 0;
 	}
 }
 
+#define MAX_POWER 100
 
 //exponential LED dimming
 //R=(255 * math.log10(2))/(math.log10(255))
@@ -85,9 +86,9 @@ class LED
 			//~ Serial.print(spinner.color_flash[1],HEX);
 			//~ Serial.print(":");
 			//~ Serial.println(spinner.color_flash[2],HEX);
-			analogWrite(RED_PIN,   led_log[min(pr_color, 255)]);
-			analogWrite(GREEN_PIN, led_log[min(pg_color, 255)]);
-			analogWrite(BLUE_PIN,  led_log[min(pb_color, 255)]);
+			analogWrite(RED_PIN,   led_log[min(pr_color, MAX_POWER)]);
+			analogWrite(GREEN_PIN, led_log[min(pg_color, MAX_POWER)]);
+			analogWrite(BLUE_PIN,  led_log[min(pb_color, MAX_POWER)]);
 		}
 
 		void add(uint8_t *color) {
@@ -259,26 +260,60 @@ void scene3() {
 }
 
 void scene4() {
-	static uint16_t angle = 0;
 	//get reference to Spinner object
 	Spinner& spinner = *((Spinner*) runner.currentLts());
-	//~ spinner.color[0] = 15;	//15
+	static uint16_t angle = 0;
+
 	spinner.color[0] = 0;
 	spinner.color[1] = 0;
 	spinner.color[2] = 255;
-	spinner.power = 100;
-	spinner.duration = 600;
+	spinner.power = 120;
+	spinner.duration = 300;
 	if(angle > 120)
 		angle = 0;
-	angle = angle+10;
+	angle = angle+1;
+	spinner.setAngle( angle );
+}
+
+void scene5() {
+	//get reference to Spinner object
+	Spinner& spinner = *((Spinner*) runner.currentLts());
+	static uint16_t angle = 0;
+
+	spinner.color[0] = 255;
+	spinner.color[1] = 0;
+	spinner.color[2] = 0;
+	spinner.power = 100;
+	spinner.duration = 300;
+	if(angle > 120)
+		angle = 0;
+	angle = angle+2;
+	spinner.setAngle( angle );
+}
+
+void scene6() {
+	//get reference to Spinner object
+	Spinner& spinner = *((Spinner*) runner.currentLts());
+	static uint16_t angle = 0;
+
+	spinner.color[0] = 0;
+	spinner.color[1] = 255;
+	spinner.color[2] = 0;
+	spinner.power = 100;
+	spinner.duration = 300;
+	if(angle > 120)
+		angle = 0;
+	angle = angle+3;
 	spinner.setAngle( angle );
 }
 
 Spinner spinners[] = {
-					{1, 5000, 6, scene1},
-					{1, 50000, 6, scene2},
+					//~ {1, 5000, 6, scene1},
+					//~ {1, 50000, 6, scene2},
 					//~ {1, 50000, 6, scene3},
 					{1, 50000, 6, scene4},
+					{1, 50000, 6, scene5},
+					{1, 50000, 6, scene6},
 };
 
 void setup ()
