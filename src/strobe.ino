@@ -81,11 +81,6 @@ class LED
 {
 	public:
 		void write(void) {
-			//~ Serial.print(spinner.color_flash[0],HEX);
-			//~ Serial.print(":");
-			//~ Serial.print(spinner.color_flash[1],HEX);
-			//~ Serial.print(":");
-			//~ Serial.println(spinner.color_flash[2],HEX);
 			analogWrite(RED_PIN,   led_log[min(pr_color, MAX_POWER)]);
 			analogWrite(GREEN_PIN, led_log[min(pg_color, MAX_POWER)]);
 			analogWrite(BLUE_PIN,  led_log[min(pb_color, MAX_POWER)]);
@@ -213,19 +208,8 @@ void scene1() {
 	spinner.color[0] = ((iter>>8)&1)*50;
 	spinner.color[1] = ((iter>>9)&1)*75;
 	spinner.color[2] = ((iter>>10)&1)*128;
-	//~ spinner.color[0] = (sin(iter/(300*3.1416))*100)+50;
-	//~ spinner.color[1] = (sin(iter/(200*3.1416))*150)+75;
-	//~ spinner.color[2] = (sin(iter/(100*3.1416))*255)+127;
-	//~ Serial.print(spinner.color[0]);
-	//~ Serial.print(":");
-	//~ Serial.print(spinner.color[1]);
-	//~ Serial.print(":");
-	//~ Serial.println(spinner.color[2]);
 	spinner.power = 255;
 	spinner.duration = 300;
-	//~ angle = (uint16_t)((sin(iter++/(2*3.1416))*60)+60);
-	//~ spinner.duration = (sin(iter/(30*3.1416))*2000)+3000;
-	//~ spinner.setAngle( angle );
 	iter++;
 }
 
@@ -235,15 +219,12 @@ void scene2() {
 
 	static uint16_t iter = 0;
 	uint16_t angle;
-	//~ spinner.color[0] = 15;	//15
 	spinner.color[0] = 0;
 	spinner.color[1] = 255;
 	spinner.color[2] = 0;
 	spinner.power = 100;
 	spinner.duration = 400;
-	//~ spinner.power = ((sin(iter/(12*3.1416))*15)+20);
 	angle = (uint16_t)((cos(iter++/(6*3.1416))*60)+60);
-	//~ Serial.println(angle);
 	spinner.setAngle( angle );
 }
 
@@ -301,19 +282,229 @@ void scene6() {
 	spinner.color[2] = 0;
 	spinner.power = 100;
 	spinner.duration = 300;
-	if(angle > 120)
-		angle = 0;
-	angle = angle+3;
+	//~ if(angle > 120)
+		//~ angle = 0;
+	//~ angle = angle+3;
+	if((angle < 0) || (angle>120))
+		angle = 120;
+	angle = angle-3;
 	spinner.setAngle( angle );
+}
+
+void scene7() {
+	static uint16_t iter = 0;
+
+	//get reference to Spinner object
+	Spinner& spinner = *((Spinner*) runner.currentLts());
+
+	spinner.color[0] = 255;
+	spinner.color[1] = 255;
+	spinner.color[2] = 255;
+	spinner.power = (uint8_t)((sin(iter++/(10*3.1416))*16)+64);
+    Serial.println(spinner.power);
+	spinner.duration = 300;
+	//~ if(angle > 120)
+		//~ angle = 0;
+	//~ angle = angle+3;
+	//~ spinner.setAngle( angle );
+}
+
+enum flag {INIT,FUZZ,COLOR_CYCLE,TRHEE_COLORS_SHORT,TRHEE_COLORS_LONG} static flagState = INIT;
+//red
+void red() {
+	static uint16_t iter = 0, angle = 0;
+	static uint8_t color_cycle = 0;
+    
+	//get reference to Spinner object
+	Spinner& spinner = *((Spinner*) runner.currentLts());
+
+    switch (flagState)
+    {
+        case INIT: //white sharp
+            spinner.setAngle( 0 );
+            spinner.color[0] = 255;
+            spinner.color[1] = 255;
+            spinner.color[2] = 255;
+            spinner.duration = 100;  //SHORT
+            spinner.power = 200;
+            if(iter > 10) flagState = FUZZ;
+            break;
+        case FUZZ:  //white fuzzy
+            spinner.setAngle( 0 );
+            spinner.color[0] = 255;
+            spinner.color[1] = 255;
+            spinner.color[2] = 255;
+            spinner.duration = count_last * (104/3);  //104 us per tick
+            spinner.power = 200;
+            if(iter > 20) flagState = COLOR_CYCLE;
+            break;
+        case COLOR_CYCLE: //keep FUZZ for power, dureation
+            switch (color_cycle)
+            {
+                case 0: //red
+                    spinner.color[0] = 255;
+                    spinner.color[1] = 0;
+                    spinner.color[2] = 0;
+                    color_cycle = 1; // to white
+                    break;
+                case 1: //white
+                    spinner.color[0] = 255;
+                    spinner.color[1] = 255;
+                    spinner.color[2] = 255;
+                    color_cycle = 2; // to blue
+                    break;
+                case 2: //blue
+                    spinner.color[0] = 0;
+                    spinner.color[1] = 0;
+                    spinner.color[2] = 255;
+                    color_cycle = 0; //back to red
+                    break;
+                default:
+                    color_cycle = 0; //back to red
+                    break;                   
+            }
+            if(iter > 50) flagState = TRHEE_COLORS_SHORT;
+            break;
+        case TRHEE_COLORS_SHORT:
+            if(angle > 120)
+                angle = 0;
+            angle = angle+1;
+            spinner.setAngle( angle );
+
+            spinner.setAngle( 0 );
+            spinner.color[0] = 255;
+            spinner.color[1] = 0;
+            spinner.color[2] = 0;
+            spinner.duration = 300;  //SHORT
+            spinner.power = 200;
+            if(iter > 150) {
+                flagState = TRHEE_COLORS_LONG;
+            }
+            break;
+        case TRHEE_COLORS_LONG:
+            angle = 0;
+            spinner.setAngle( angle );
+
+            spinner.setAngle( 0 );
+            spinner.color[0] = 255;
+            spinner.color[1] = 0;
+            spinner.color[2] = 0;
+            
+            
+            static uint8_t duration = 0;
+            if(duration > 17)
+                duration = 0;
+            duration = duration+1;
+            spinner.duration = count_last * duration;  //LONG
+            spinner.power = 200;
+            if(iter > 250) {
+                iter = 0;
+                flagState = INIT;
+            }
+            break;
+        default:
+            break;
+    }
+    Serial.println(flagState);
+    iter++;
+}
+//white
+void white() {
+	//get reference to Spinner object
+	static uint16_t angle = 0;
+	Spinner& spinner = *((Spinner*) runner.currentLts());
+
+    switch (flagState)
+    {
+        case INIT: //white sharp
+        case FUZZ:  //white fuzzy
+        case COLOR_CYCLE: //keep FUZZ for power, dureation
+            spinner.power = 40;
+            break;
+        case TRHEE_COLORS_SHORT:
+            if(angle > 120)
+                angle = 0;
+            angle = angle+2;
+            spinner.setAngle( angle );
+            spinner.color[0] = 255;
+            spinner.color[1] = 255;
+            spinner.color[2] = 255;
+            spinner.duration = 300;  //SHORT
+            spinner.power = 255;
+            break;
+        case TRHEE_COLORS_LONG:
+            angle = 40;
+            spinner.setAngle( angle );
+
+            spinner.color[0] = 255;
+            spinner.color[1] = 255;
+            spinner.color[2] = 255;
+           static uint8_t duration = 0;
+            if(duration > 17)
+                duration = 0;
+            duration = duration+1;
+            spinner.duration = count_last * duration;  //LONG
+             spinner.power = 200;
+            break;
+        default:
+            break;
+    }
+}
+//blue
+void blue() {
+	//get reference to Spinner object
+	static uint16_t angle = 80;
+	Spinner& spinner = *((Spinner*) runner.currentLts());
+
+    switch (flagState)
+    {
+        case INIT: //white sharp
+        case FUZZ:  //white fuzzy
+        case COLOR_CYCLE: //keep FUZZ for power, dureation
+            spinner.power = 0;
+            break;
+        case TRHEE_COLORS_SHORT:
+            if(angle > 120)
+                angle = 0;
+            angle = angle+3;
+            spinner.setAngle( angle );
+            spinner.color[0] = 0;
+            spinner.color[1] = 0;
+            spinner.color[2] = 255;
+            spinner.duration = 300;  //SHORT
+            spinner.power = 255;
+            break;
+        case TRHEE_COLORS_LONG:
+            angle = 80;
+            spinner.setAngle( angle );
+
+            spinner.color[0] = 0;
+            spinner.color[1] = 0;
+            spinner.color[2] = 255;
+            static uint8_t duration = 0;
+            if(duration > 17)
+                duration = 0;
+            duration = duration+1;
+            spinner.duration = count_last * duration;  //LONG
+            spinner.power = 200;
+            break;
+        default:
+            break;
+    }
 }
 
 Spinner spinners[] = {
 					//~ {1, 5000, 6, scene1},
 					//~ {1, 50000, 6, scene2},
 					//~ {1, 50000, 6, scene3},
-					{1, 50000, 6, scene4},
-					{1, 50000, 6, scene5},
-					{1, 50000, 6, scene6},
+					//~ {1, 50000, 6, scene4},
+					//~ {1, 50000, 6, scene5},
+					//~ {1, 25000, 6, scene6},
+					//~ {1, 5000, 6, scene8},
+					{1, 100000, 6, red},
+					{1, 100000, 6, white},
+					{1, 100000, 6, blue},
+					//~ {1, 5000, 6, scene10},
 };
 
 void setup ()
